@@ -334,7 +334,6 @@ export const useBoardStore = create<BoardState>((set, get) => ({
     const GROUP_GAP_X = 120
     const GROUP_GAP_Y = 160
     const LEVEL_GAP_Y = 140
-    const LEVEL_GAP_X = 100
 
     const originalPos = new Map<string, { x: number; y: number }>()
     const updates: { id: string; x: number; y: number }[] = []
