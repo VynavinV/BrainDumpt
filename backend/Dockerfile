@@ -1,7 +1,6 @@
 FROM python:3.11-slim
 
 WORKDIR /app
-
 # When the Docker build context is the `backend` directory, copy files relative to it.
 COPY requirements.txt /app/requirements.txt
 RUN pip install --no-cache-dir -r /app/requirements.txt
