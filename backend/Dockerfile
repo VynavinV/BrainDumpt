@@ -1,13 +1,13 @@
 FROM python:3.11-slim
 
 WORKDIR /app
-# Railway and most repo-root Docker builds use the repository root as the build context,
-# so copy backend files using repo-relative paths.
-COPY backend/requirements.txt /app/requirements.txt
+# Railway is building with the backend/ directory as the build context, so copy files
+# relative to that directory.
+COPY requirements.txt /app/requirements.txt
 RUN pip install --no-cache-dir -r /app/requirements.txt
 
 # Copy the rest of the backend source into the image
-COPY backend/ /app/
+COPY . /app/
 
 # Use key=value ENV format
 ENV PYTHONPATH=/app

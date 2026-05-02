@@ -35,7 +35,7 @@ Option A — Render (recommended simple free option):
 Option B — Other free hosts
 
 - Railway, Fly.io, or similar platforms can also run this backend.
-- For Railway, point the service at `backend/Dockerfile`. The Dockerfile now works from the repo root, which matches Railway's default build context.
+- For Railway, point the service at `backend/Dockerfile` and set the service root directory to `backend` so the Docker build context matches the Dockerfile.
 - If you choose a Python runtime instead of Docker, use this start command:
 
    `uvicorn app.main:app --host 0.0.0.0 --port $PORT`
