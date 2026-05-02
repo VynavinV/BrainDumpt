@@ -77,8 +77,6 @@ export default function ImageNode({ node }: Props) {
     <div
       className={`board-node image-node ${isSelected ? 'selected' : ''} ${isDragging ? 'drag-over' : ''}`}
       style={{
-        left: node.x,
-        top: node.y,
         width: node.width,
         minHeight: node.height,
         backgroundColor: node.color,

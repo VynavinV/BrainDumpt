@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import type { BoardNode } from '../../types'
 import { useBoardStore } from '../../store'
 
@@ -10,6 +10,20 @@ export default function CodeNode({ node }: Props) {
   const { selectNode, updateNode } = useBoardStore()
   const [isEditing, setIsEditing] = useState(false)
   const isSelected = useBoardStore((s) => s.selectedId === node.id)
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
+
+  useEffect(() => {
+    if (node._autoEdit) {
+      updateNode(node.id, { _autoEdit: false })
+
+    }
+  }, [node.id, node._autoEdit, updateNode])
+
+  useEffect(() => {
+    if (isEditing) {
+      requestAnimationFrame(() => textareaRef.current?.focus())
+    }
+  }, [isEditing])
 
   const handleMouseDown = useCallback(
     (e: React.MouseEvent) => {
@@ -39,18 +53,32 @@ export default function CodeNode({ node }: Props) {
     [node.id, node.x, node.y, selectNode, isEditing]
   )
 
+  const finishEditing = () => {
+    setIsEditing(false)
+    textareaRef.current?.blur()
+  }
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    e.stopPropagation()
+    if (e.key === 'Escape') {
+      finishEditing()
+    }
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+      e.preventDefault()
+      finishEditing()
+    }
+  }
+
   return (
     <div
       className={`board-node code-node ${isSelected ? 'selected' : ''}`}
       style={{
-        left: node.x,
-        top: node.y,
         width: node.width,
         minHeight: node.height,
         backgroundColor: node.color,
       }}
       onMouseDown={handleMouseDown}
-      onDoubleClick={(e) => { e.stopPropagation(); setIsEditing(true) }}
+      onDoubleClick={(e) => { e.stopPropagation(); setIsEditing(true); requestAnimationFrame(() => textareaRef.current?.focus()) }}
     >
       <div className="node-header">
         <span className="node-type-icon">&lt;&gt;</span>
@@ -58,13 +86,14 @@ export default function CodeNode({ node }: Props) {
       </div>
       {isEditing ? (
         <textarea
+          ref={textareaRef}
           className="code-edit"
           value={node.code || ''}
           onChange={(e) => updateNode(node.id, { code: e.target.value })}
-          onBlur={() => setIsEditing(false)}
+          onBlur={finishEditing}
+          onKeyDown={handleKeyDown}
           onClick={(e) => e.stopPropagation()}
           onMouseDown={(e) => e.stopPropagation()}
-          autoFocus
           placeholder="Paste or write code..."
         />
       ) : (

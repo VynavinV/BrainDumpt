@@ -1,7 +1,7 @@
 import { useBoardStore } from '../store'
 
 export default function RightPanel() {
-  const { selectedId, nodes, rightPanelOpen, setRightPanelOpen, updateNode } = useBoardStore()
+  const { selectedId, nodes, rightPanelOpen, setRightPanelOpen, updateNode, mode } = useBoardStore()
   const node = nodes.find((n) => n.id === selectedId)
 
   if (!rightPanelOpen || !node) return null
@@ -21,6 +21,12 @@ export default function RightPanel() {
         <span className="panel-type">{typeLabels[node.type] || node.type}</span>
         <button className="panel-close" onClick={() => setRightPanelOpen(false)}>✕</button>
       </div>
+
+      {mode === 'builder' && (
+        <div className="panel-section panel-shortcuts-hint">
+          <span className="panel-hint">Del to delete · Esc to deselect · ? for all shortcuts</span>
+        </div>
+      )}
 
       <div className="panel-section">
         <label className="panel-label">Author</label>
@@ -48,12 +54,15 @@ export default function RightPanel() {
         <>
           <div className="panel-section">
             <label className="panel-label">Language</label>
-            <input
-              className="panel-input"
-              value={node.language || ''}
+            <select
+              className="panel-select"
+              value={node.language || 'javascript'}
               onChange={(e) => updateNode(node.id, { language: e.target.value })}
-              placeholder="javascript"
-            />
+            >
+              {['javascript', 'typescript', 'python', 'rust', 'go', 'java', 'css', 'html', 'json', 'sql', 'bash', 'other'].map((lang) => (
+                <option key={lang} value={lang}>{lang}</option>
+              ))}
+            </select>
           </div>
           <div className="panel-section">
             <label className="panel-label">Code</label>
