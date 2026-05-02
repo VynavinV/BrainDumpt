@@ -831,6 +831,18 @@ async def ws_board(websocket: WebSocket, board_id: str):
                     board.save()
                 await broadcast(board, {"type": "synthesis_clear", "from": user_id}, skip=websocket)
 
+            elif mtype == "synthesis_resynthesize":
+                async with board.lock:
+                    board.synthesis = None
+                    board.save()
+                nodes_list = [SynthesizeNode(**n) for n in board.nodes.values()]
+                request = SynthesizeRequest(nodes=nodes_list, board_title=board.title)
+                result = await synthesize_board(request)
+                async with board.lock:
+                    board.synthesis = result
+                    board.save()
+                await broadcast(board, {"type": "synthesis_set", "result": result, "from": user_id}, skip=websocket)
+
             elif mtype == "ping":
                 await websocket.send_text(json.dumps({"type": "pong", "t": msg.get("t")}))
 

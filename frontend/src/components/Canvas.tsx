@@ -38,23 +38,29 @@ function ConnectionLines() {
       style={{ position: 'absolute', top: 0, left: 0, width: 1, height: 1, overflow: 'visible', pointerEvents: 'none' }}
     >
       <defs>
-        <marker id="arrowhead" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
-          <polygon points="0 0, 8 3, 0 6" fill="var(--text-muted)" opacity="0.5" />
-        </marker>
+        <filter id="synapseGlow" x="-50%" y="-50%" width="200%" height="200%">
+          <feGaussianBlur stdDeviation="2.5" result="blur" />
+          <feMerge>
+            <feMergeNode in="blur" />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
+        </filter>
       </defs>
       {edges.map((e) => {
         const dx = Math.abs(e.x2 - e.x1) * 0.4
         const d = `M ${e.x1} ${e.y1} C ${e.x1 + dx} ${e.y1}, ${e.x2 - dx} ${e.y2}, ${e.x2} ${e.y2}`
+        const len = Math.hypot(e.x2 - e.x1, e.y2 - e.y1)
+        const dur = Math.max(1.4, Math.min(3.5, len / 280))
         return (
-          <path
-            key={e.id}
-            d={d}
-            fill="none"
-            stroke="var(--text-muted)"
-            strokeWidth={2}
-            strokeOpacity={0.4}
-            markerEnd="url(#arrowhead)"
-          />
+          <g key={e.id} className="synapse-group">
+            <path d={d} fill="none" stroke="rgba(129,140,248,0.18)" strokeWidth={6} filter="url(#synapseGlow)" />
+            <path d={d} fill="none" stroke="rgba(255,255,255,0.55)" strokeWidth={1.4} />
+            {[0, 0.33, 0.66].map((delay, i) => (
+              <circle key={i} r={2.6} fill="#c7d2fe" opacity={0.95} filter="url(#synapseGlow)">
+                <animateMotion dur={`${dur}s`} repeatCount="indefinite" path={d} begin={`-${delay * dur}s`} />
+              </circle>
+            ))}
+          </g>
         )
       })}
     </svg>
