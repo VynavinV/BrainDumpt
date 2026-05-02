@@ -1,12 +1,13 @@
 FROM python:3.11-slim
 
 WORKDIR /app
-# When the Docker build context is the `backend` directory, copy files relative to it.
-COPY requirements.txt /app/requirements.txt
+# Railway and most repo-root Docker builds use the repository root as the build context,
+# so copy backend files using repo-relative paths.
+COPY backend/requirements.txt /app/requirements.txt
 RUN pip install --no-cache-dir -r /app/requirements.txt
 
 # Copy the rest of the backend source into the image
-COPY . /app
+COPY backend/ /app/
 
 # Use key=value ENV format
 ENV PYTHONPATH=/app

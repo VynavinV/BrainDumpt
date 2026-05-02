@@ -311,7 +311,7 @@ async def refine_content(request: RefineRequest):
 
     try:
         response = client.models.generate_content(
-            model="gemini-2.5-flash",
+            model="gemini-flash-lite-latest",
             contents=prompt,
             config={
                 "system_instruction": REFINE_SYSTEM,
@@ -573,7 +573,7 @@ async def synthesize_board(request: SynthesizeRequest):
         client = get_synthesis_client()
         
         response = client.models.generate_content(
-            model="gemini-2.5-flash",
+            model="gemini-flash-lite-latest",
             contents=prompt,
             config={
                 "system_instruction": SYNTHESIZE_SYSTEM,

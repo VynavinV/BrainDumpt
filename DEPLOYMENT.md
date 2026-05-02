@@ -34,9 +34,17 @@ Option A — Render (recommended simple free option):
 
 Option B — Other free hosts
 
-- Railway, Fly.io, or Railway can also run this backend; if you prefer those, you can either use the Dockerfile or use a Python service with start command:
+- Railway, Fly.io, or similar platforms can also run this backend.
+- For Railway, point the service at `backend/Dockerfile`. The Dockerfile now works from the repo root, which matches Railway's default build context.
+- If you choose a Python runtime instead of Docker, use this start command:
 
-  `uvicorn app.main:app --host 0.0.0.0 --port $PORT`
+   `uvicorn app.main:app --host 0.0.0.0 --port $PORT`
+
+Railway environment variables
+
+- Backend: `GEMINI_API_KEY`
+- Frontend: `VITE_API_URL=https://braindumpt-backend-production.up.railway.app`
+- Frontend: `VITE_WS_URL=wss://braindumpt-backend-production.up.railway.app`
 
 Env variables
 
