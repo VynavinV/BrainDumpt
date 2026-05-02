@@ -1,0 +1,16 @@
+# Ignore Python cache and virtualenv
+__pycache__/
+*.pyc
+*.pyo
+.venv
+
+# Ignore local env files
+.env
+.env.*
+
+# Git and node
+.git
+node_modules
+
+# Frontend is outside build context when building backend — ignore just in case
+../frontend

@@ -42,6 +42,18 @@ Env variables
 
 - Add any secrets (e.g., `GEMINI_API_KEY`) in the provider's dashboard; do NOT commit secrets to the repo.
 
+Removing secrets from the repo
+
+- If you accidentally committed `backend/.env`, remove it from the repo immediately:
+
+   ```bash
+   git rm --cached backend/.env
+   git commit -m "Remove committed .env (secrets)"
+   git push origin main
+   ```
+
+- To purge the secret from git history use the [BFG Repo Cleaner](https://rtyley.github.io/bfg-repo-cleaner/) or `git filter-repo`. Follow their docs carefully.
+
 Notes and troubleshooting
 
 - If your backend needs additional system libs, update the Dockerfile accordingly.
