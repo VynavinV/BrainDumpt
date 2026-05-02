@@ -13,7 +13,7 @@ interface LinkPreviewData {
   embed_type: string
 }
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+const API_BASE = import.meta.env.VITE_API_URL || 'https://braindumpt-backend-production.up.railway.app'
 
 interface Props {
   node: BoardNode

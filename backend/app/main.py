@@ -51,16 +51,14 @@ def get_whisper_model():
     return _whisper_model
 
 
-def get_gemini_model():
+def get_gemini_client():
     global _gemini_model
     if _gemini_model is None:
-        from google.genai import Client
+        from google import genai
         api_key = os.environ.get("GEMINI_API_KEY")
         if not api_key:
             raise HTTPException(status_code=503, detail="GEMINI_API_KEY env var not set")
-        client = Client(api_key=api_key)
-        # Store both client and system instruction for later use
-        _gemini_model = {"client": client, "system_instruction": REFINE_SYSTEM}
+        _gemini_model = genai.Client(api_key=api_key)
     return _gemini_model
 
 
@@ -129,16 +127,14 @@ Critical rules:
 """
 
 
-def get_synthesis_model():
+def get_synthesis_client():
     global _synthesis_model
     if _synthesis_model is None:
-        from google.genai import Client
+        from google import genai
         api_key = os.environ.get("GEMINI_API_KEY")
         if not api_key:
             raise HTTPException(status_code=503, detail="GEMINI_API_KEY env var not set")
-        client = Client(api_key=api_key)
-        # Store both client and system instruction for later use
-        _synthesis_model = {"client": client, "system_instruction": SYNTHESIZE_SYSTEM}
+        _synthesis_model = genai.Client(api_key=api_key)
     return _synthesis_model
 
 app = FastAPI(title="BrainDumpt API")
@@ -293,9 +289,7 @@ async def transcribe_audio(file: UploadFile = File(...)):
 
 @app.post("/refine")
 async def refine_content(request: RefineRequest):
-    model_data = get_gemini_model()
-    client = model_data["client"]
-    system_instruction = model_data["system_instruction"]
+    client = get_gemini_client()
 
     context_block = ""
     if request.context:
@@ -317,18 +311,16 @@ async def refine_content(request: RefineRequest):
 
     try:
         response = client.models.generate_content(
-            model="gemini-flash-lite-latest",
+            model="gemini-2.5-flash",
             contents=prompt,
             config={
-                "systemInstruction": system_instruction,
+                "system_instruction": REFINE_SYSTEM,
                 "temperature": 0.3,
-                "maxOutputTokens": 1024,
+                "max_output_tokens": 1024,
             },
         )
         refined = response.text.strip() if response.text else request.content
-    except Exception as e:
-        print("[refine] Gemini error:", repr(e))
-        traceback.print_exc()
+    except Exception:
         refined = request.content
 
     if request.node_type == "list" and refined:
@@ -578,17 +570,15 @@ async def synthesize_board(request: SynthesizeRequest):
     prompt = f"{board_text}\n\nAnalyze these notes and return the synthesis as JSON. Remember: assign every node to exactly one group."
 
     try:
-        model_data = get_synthesis_model()
-        client = model_data["client"]
-        system_instruction = model_data["system_instruction"]
+        client = get_synthesis_client()
         
         response = client.models.generate_content(
-            model="gemini-flash-lite-latest",
+            model="gemini-2.5-flash",
             contents=prompt,
             config={
-                "systemInstruction": system_instruction,
+                "system_instruction": SYNTHESIZE_SYSTEM,
                 "temperature": 0.4,
-                "maxOutputTokens": 4096,
+                "max_output_tokens": 4096,
             },
         )
         raw = response.text.strip() if response.text else ""

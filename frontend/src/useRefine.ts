@@ -1,7 +1,7 @@
 import { useCallback } from 'react'
 import { useBoardStore } from './store'
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+const API_URL = import.meta.env.VITE_API_URL || 'https://braindumpt-backend-production.up.railway.app'
 
 interface ContextItem {
   role: string

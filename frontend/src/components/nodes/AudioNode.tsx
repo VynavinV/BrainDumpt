@@ -8,7 +8,7 @@ interface Props {
   node: BoardNode
 }
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+const API_URL = import.meta.env.VITE_API_URL || 'https://braindumpt-backend-production.up.railway.app'
 
 export default function AudioNode({ node }: Props) {
   const { selectNode, updateNode } = useBoardStore()
