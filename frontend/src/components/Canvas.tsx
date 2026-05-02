@@ -14,12 +14,25 @@ const SHORTCUT_MAP: Record<string, NodeType> = {
 
 function ConnectionLines() {
   const nodes = useBoardStore((s) => s.nodes)
-  const edges: { id: string; x1: number; y1: number; x2: number; y2: number }[] = []
+  const synthesisResult = useBoardStore((s) => s.synthesisResult)
+
+  const edges: { id: string; x1: number; y1: number; x2: number; y2: number; type: string }[] = []
 
   for (const child of nodes) {
     if (!child.parentId) continue
     const parent = nodes.find((n) => n.id === child.parentId)
     if (!parent) continue
+
+    let connectionType = 'default'
+    if (synthesisResult) {
+      for (const group of synthesisResult.groups) {
+        const step = group.flow?.find((s) => s.node_ids?.includes(child.id))
+        if (step) {
+          connectionType = step.type
+          break
+        }
+      }
+    }
 
     edges.push({
       id: `${parent.id}-${child.id}`,
@@ -27,10 +40,31 @@ function ConnectionLines() {
       y1: parent.y + parent.height / 2,
       x2: child.x,
       y2: child.y + child.height / 2,
+      type: connectionType,
     })
   }
 
   if (edges.length === 0) return null
+
+  const getStrokeColor = (type: string) => {
+    switch (type) {
+      case 'core': return 'rgba(124,58,255,0.25)'
+      case 'detail': return 'rgba(59,130,246,0.25)'
+      case 'question': return 'rgba(245,158,11,0.25)'
+      case 'action': return 'rgba(34,197,94,0.25)'
+      default: return 'rgba(129,140,248,0.25)'
+    }
+  }
+
+  const getLineColor = (type: string) => {
+    switch (type) {
+      case 'core': return 'rgba(124,58,255,0.7)'
+      case 'detail': return 'rgba(59,130,246,0.7)'
+      case 'question': return 'rgba(245,158,11,0.7)'
+      case 'action': return 'rgba(34,197,94,0.7)'
+      default: return 'rgba(200,210,254,0.6)'
+    }
+  }
 
   return (
     <svg
@@ -45,18 +79,45 @@ function ConnectionLines() {
             <feMergeNode in="SourceGraphic" />
           </feMerge>
         </filter>
+        <marker id="arrowhead-core" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+          <polygon points="0 0, 10 3, 0 6" fill="rgba(124,58,255,0.6)" />
+        </marker>
+        <marker id="arrowhead-detail" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+          <polygon points="0 0, 10 3, 0 6" fill="rgba(59,130,246,0.6)" />
+        </marker>
+        <marker id="arrowhead-question" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+          <polygon points="0 0, 10 3, 0 6" fill="rgba(245,158,11,0.6)" />
+        </marker>
+        <marker id="arrowhead-action" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+          <polygon points="0 0, 10 3, 0 6" fill="rgba(34,197,94,0.6)" />
+        </marker>
       </defs>
       {edges.map((e) => {
-        const dx = Math.abs(e.x2 - e.x1) * 0.4
-        const d = `M ${e.x1} ${e.y1} C ${e.x1 + dx} ${e.y1}, ${e.x2 - dx} ${e.y2}, ${e.x2} ${e.y2}`
+        const dx = Math.abs(e.x2 - e.x1) * 0.35
+        const dy = (e.y2 - e.y1) * 0.1
+        const d = `M ${e.x1} ${e.y1} C ${e.x1 + dx} ${e.y1 + dy}, ${e.x2 - dx} ${e.y2 - dy}, ${e.x2} ${e.y2}`
         const len = Math.hypot(e.x2 - e.x1, e.y2 - e.y1)
-        const dur = Math.max(1.4, Math.min(3.5, len / 280))
+        const dur = Math.max(1.2, Math.min(3, len / 300))
+        const markerUrl = `url(#arrowhead-${e.type})`
+
         return (
-          <g key={e.id} className="synapse-group">
-            <path d={d} fill="none" stroke="rgba(129,140,248,0.18)" strokeWidth={6} filter="url(#synapseGlow)" />
-            <path d={d} fill="none" stroke="rgba(255,255,255,0.55)" strokeWidth={1.4} />
+          <g key={e.id} className={`synapse-group synapse-${e.type}`}>
+            <path
+              d={d}
+              fill="none"
+              stroke={getStrokeColor(e.type)}
+              strokeWidth={7}
+              filter="url(#synapseGlow)"
+            />
+            <path
+              d={d}
+              fill="none"
+              stroke={getLineColor(e.type)}
+              strokeWidth={2}
+              markerEnd={markerUrl}
+            />
             {[0, 0.33, 0.66].map((delay, i) => (
-              <circle key={i} r={2.6} fill="#c7d2fe" opacity={0.95} filter="url(#synapseGlow)">
+              <circle key={i} r={2.2} fill={getLineColor(e.type)} opacity={0.8} filter="url(#synapseGlow)">
                 <animateMotion dur={`${dur}s`} repeatCount="indefinite" path={d} begin={`-${delay * dur}s`} />
               </circle>
             ))}

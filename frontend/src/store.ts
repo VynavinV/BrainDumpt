@@ -328,66 +328,123 @@ export const useBoardStore = create<BoardState>((set, get) => ({
     const { nodes, synthesisResult } = get()
     if (!synthesisResult || synthesisResult.groups.length === 0) return
 
-    const NODE_GAP = 24
-    const GROUP_PAD_X = 50
-    const GROUP_PAD_Y = 60
-    const GROUP_GAP_X = 80
-    const GROUP_GAP_Y = 100
-    const MAX_PER_ROW = 3
-    const START_X = 100
-    const START_Y = 100
+    const NODE_GAP = 32
+    const GROUP_PAD_X = 60
+    const GROUP_PAD_Y = 80
+    const GROUP_GAP_X = 120
+    const GROUP_GAP_Y = 160
+    const LEVEL_GAP_Y = 140
+    const LEVEL_GAP_X = 100
 
     const originalPos = new Map<string, { x: number; y: number }>()
     const updates: { id: string; x: number; y: number }[] = []
 
-    let cursorX = START_X
-    let cursorY = START_Y
-    let pageMaxHeight = 0
+    let groupX = 100
+    let groupY = 100
 
     for (const group of synthesisResult.groups) {
       const gNodes = nodes.filter((n) => group.node_ids.includes(n.id))
       if (gNodes.length === 0) continue
 
-      let localX = 0
-      let localY = 0
-      let rowMaxH = 0
-      let groupW = 0
-      let col = 0
+      const flowSteps = group.flow || []
+      const nodeMap = new Map(gNodes.map((n) => [n.id, n]))
 
-      for (let i = 0; i < gNodes.length; i++) {
-        const n = gNodes[i]
-        const px = localX
-        const py = localY
-        rowMaxH = Math.max(rowMaxH, n.height)
+      if (flowSteps.length === 0) {
+        const rowMaxH = Math.max(120, ...gNodes.map((n) => n.height))
+        let x = groupX + GROUP_PAD_X
+        const y = groupY + GROUP_PAD_Y
 
-        const targetX = cursorX + GROUP_PAD_X + px
-        const targetY = cursorY + GROUP_PAD_Y + py
-
-        originalPos.set(n.id, { x: n.x, y: n.y })
-        updates.push({ id: n.id, x: Math.round(targetX / 10) * 10, y: Math.round(targetY / 10) * 10 })
-
-        col++
-        localX += n.width + NODE_GAP
-
-        if (col >= MAX_PER_ROW || i === gNodes.length - 1) {
-          groupW = Math.max(groupW, localX - NODE_GAP)
-          localX = 0
-          localY += rowMaxH + NODE_GAP
-          rowMaxH = 0
-          col = 0
+        for (const n of gNodes) {
+          originalPos.set(n.id, { x: n.x, y: n.y })
+          updates.push({ id: n.id, x: Math.round(x / 10) * 10, y: Math.round(y / 10) * 10 })
+          x += n.width + NODE_GAP
         }
+
+        const groupW = x - NODE_GAP - groupX
+        const groupH = rowMaxH + GROUP_PAD_Y * 2
+
+        groupX += groupW + GROUP_GAP_X
+        groupY = Math.max(groupY, groupY + groupH)
+        if (groupX > 2000) {
+          groupX = 100
+          groupY += groupH + GROUP_GAP_Y
+        }
+        continue
       }
 
-      const groupH = localY - NODE_GAP
+      const levelMap = new Map<number, string[]>()
+      const visited = new Set<number>()
 
-      if (cursorX + groupW + GROUP_PAD_X * 2 > 1600) {
-        cursorX = START_X
-        cursorY += pageMaxHeight + GROUP_GAP_Y
-        pageMaxHeight = 0
+      const assignLevel = (stepNum: number, level: number) => {
+        if (visited.has(stepNum)) return
+        visited.add(stepNum)
+        if (!levelMap.has(level)) levelMap.set(level, [])
+        levelMap.get(level)!.push(stepNum.toString())
       }
 
-      cursorX += groupW + GROUP_PAD_X * 2 + GROUP_GAP_X
-      pageMaxHeight = Math.max(pageMaxHeight, groupH + GROUP_PAD_Y * 2)
+      for (const step of flowSteps) {
+        const parentLevel = step.parent_step !== null
+          ? Array.from(levelMap.entries()).find(([_, steps]) => steps.includes(step.parent_step!.toString()))?.[0] ?? 0
+          : -1
+        assignLevel(step.step, parentLevel + 1)
+      }
+
+      let maxLevel = 0
+      const levelPositions = new Map<number, { x: number; nodes: string[] }>()
+
+      levelMap.forEach((stepNums, level) => {
+        maxLevel = Math.max(maxLevel, level)
+        const levelNodes = stepNums
+          .flatMap((sn) => {
+            const step = flowSteps.find((s) => s.step === parseInt(sn))
+            return step?.node_ids || []
+          })
+          .filter((id) => nodeMap.has(id))
+
+        let x = groupX + GROUP_PAD_X
+        const levelWidth = levelNodes.reduce((sum, id) => sum + (nodeMap.get(id)?.width || 200) + NODE_GAP, 0)
+        if (levelWidth < 400) {
+          x += (400 - levelWidth) / 2
+        }
+
+        levelPositions.set(level, { x, nodes: levelNodes })
+      })
+
+      const levelHeights = new Map<number, number>()
+      levelPositions.forEach((_, level) => {
+        const nodes = levelPositions.get(level)?.nodes || []
+        const maxH = Math.max(...nodes.map((id) => nodeMap.get(id)?.height || 100))
+        levelHeights.set(level, maxH)
+      })
+
+      let yPos = groupY + GROUP_PAD_Y
+      for (let level = 0; level <= maxLevel; level++) {
+        const levelData = levelPositions.get(level)
+        if (!levelData) continue
+
+        let xPos = levelData.x
+        for (const nodeId of levelData.nodes) {
+          const n = nodeMap.get(nodeId)
+          if (n) {
+            originalPos.set(n.id, { x: n.x, y: n.y })
+            updates.push({ id: n.id, x: Math.round(xPos / 10) * 10, y: Math.round(yPos / 10) * 10 })
+            xPos += n.width + NODE_GAP
+          }
+        }
+
+        yPos += (levelHeights.get(level) || 100) + LEVEL_GAP_Y
+      }
+
+      const groupW = Math.max(400, ...Array.from(levelPositions.values()).map((lp) =>
+        lp.nodes.reduce((sum, id) => sum + (nodeMap.get(id)?.width || 200) + NODE_GAP, 0)
+      ))
+      const groupH = yPos - groupY
+
+      groupX += groupW + GROUP_PAD_X * 2 + GROUP_GAP_X
+      if (groupX > 2400) {
+        groupX = 100
+        groupY += groupH + GROUP_GAP_Y
+      }
     }
 
     document.body.classList.add('synthesis-animating')
